@@ -154,7 +154,7 @@ def _rich_text(inline: Token | None) -> list[RichText]:
         elif t in ("softbreak", "hardbreak"):
             segments += _text_segments("\n", _annotations())
         elif t == "image":
-            alt = child.content or child.attrGet("src") or "imagem"
+            alt = child.content or child.attrGet("src") or "image"
             segments += _text_segments(alt, _annotations(), child.attrGet("src"))
 
     return _merge_adjacent(segments)

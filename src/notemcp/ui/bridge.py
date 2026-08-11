@@ -205,7 +205,7 @@ class Bridge(QObject):
         self._emit_parent_page_changed(persist=False)
         if self._parent_page_malformed:
             self.configWarning.emit(
-                "não consegui restaurar a página escolhida; publicando na raiz"
+                "could not restore the chosen page; publishing to the root"
             )
 
         try:
@@ -240,17 +240,17 @@ class Bridge(QObject):
         destinations = [
             {
                 "kind": DestinationKind.DATABASE.value,
-                "label": "Database Notas",
+                "label": "Notas database",
                 "available": True,
                 "reason": "",
             },
             {
                 "kind": DestinationKind.PAGE.value,
-                "label": "Página solta",
+                "label": "Loose page",
                 "available": bool(self.settings.notion_parent_page_id),
                 "reason": (
                     "" if self.settings.notion_parent_page_id
-                    else "defina NOTION_PARENT_PAGE_ID no .env"
+                    else "set NOTION_PARENT_PAGE_ID in .env"
                 ),
             },
         ]
@@ -380,7 +380,7 @@ class Bridge(QObject):
         def error(msg: str):
             if seq != self._browse_seq:
                 return
-            self.failed.emit(f"não consegui listar '{target.title}': {msg}")
+            self.failed.emit(f"could not list '{target.title}': {msg}")
 
         run_async(work, done, error)
 
@@ -392,7 +392,7 @@ class Bridge(QObject):
         avoids re-walking the same path on every interaction.
         """
         if not self.settings.notion_parent_page_id:
-            self.failed.emit("defina NOTION_PARENT_PAGE_ID no .env para escolher uma página-mãe.")
+            self.failed.emit("set NOTION_PARENT_PAGE_ID in .env to choose a parent page.")
             return
         self._browse(self._browse_path)
 
@@ -406,7 +406,7 @@ class Bridge(QObject):
         """
         match = next((c for c in self._browse_children if c.id == page_id), None)
         if match is None:
-            self.failed.emit("essa página não é uma subpágina do nível atual.")
+            self.failed.emit("that page is not a subpage of the current level.")
             return
         self._browse([*self._browse_path, match])
 
@@ -422,7 +422,7 @@ class Bridge(QObject):
             if node.id == page_id:
                 self._browse(self._browse_path[: i + 1])
                 return
-        self.failed.emit("essa página não está no caminho atual.")
+        self.failed.emit("that page is not in the current path.")
 
     @Slot()
     def reloadPageTree(self) -> None:
@@ -458,12 +458,12 @@ class Bridge(QObject):
         changes."""
         title = title.strip()
         if not title:
-            self.failed.emit("dê um título para a página.")
+            self.failed.emit("give the page a title.")
             return
 
         parent_path = self._browse_path
         parent = parent_path[-1]
-        self.busy.emit(True, f"criando '{title}'…")
+        self.busy.emit(True, f"creating '{title}'…")
 
         def work():
             return self._ensure_browser().create_child_page(parent.id, title)
@@ -492,7 +492,7 @@ class Bridge(QObject):
 
         def error(msg: str):
             self.busy.emit(False, "")
-            self.failed.emit(f"não consegui criar '{title}': {msg}")
+            self.failed.emit(f"could not create '{title}': {msg}")
 
         run_async(work, done, error)
 
@@ -505,7 +505,7 @@ class Bridge(QObject):
         candidates = {node.id: node, **{c.id: c for c in self._browse_children}}
         match = candidates.get(page_id)
         if match is None:
-            self.failed.emit("essa página não está visível no seletor atual.")
+            self.failed.emit("that page is not visible in the current selector.")
             return
 
         if match.id == self._root_node.id:
@@ -569,19 +569,19 @@ class Bridge(QObject):
         """
         raw = raw.strip()
         if not raw:
-            self.failed.emit("Escreva alguma coisa antes de formatar.")
+            self.failed.emit("Write something before formatting.")
             return
 
         provider_id = self._provider_id
         if not provider_id:
             self.failed.emit(
-                "Nenhum provedor disponível — configure `GEMINI_API_KEY` no .env e reabra o app."
+                "No provider available — set `GEMINI_API_KEY` in .env and reopen the app."
             )
             return
 
         destination = self._current_choice()
 
-        self.busy.emit(True, f"formatando com {provider_id}…")
+        self.busy.emit(True, f"formatting with {provider_id}…")
 
         def work():
             """Persist the raw text, then call the model, then save the draft.
@@ -637,7 +637,7 @@ class Bridge(QObject):
         from `self._destination_kind`/`self._parent_page`: they are the
         values the screen showed at the moment of the click — the `<select>`
         and the chosen target may have changed since `formatNote` ran
-        (risk #7), and the displayed "Página: X" label needs to be literally
+        (risk #7), and the displayed "Page: X" label needs to be literally
         what gets sent (risk #11).
 
         `parent_page_id == ""` becomes root HERE, not inside
@@ -651,7 +651,7 @@ class Bridge(QObject):
         try:
             draft = NoteDraft.model_validate_json(draft_json)
         except ValueError as exc:
-            self.failed.emit(f"Rascunho inválido: {exc}")
+            self.failed.emit(f"Invalid draft: {exc}")
             return
 
         destination_kind = _kind_or_default(kind)
@@ -662,7 +662,7 @@ class Bridge(QObject):
             destination = DestinationChoice.database()
 
         note_id = self._note_id
-        self.busy.emit(True, "publicando no Notion…")
+        self.busy.emit(True, "publishing to Notion…")
 
         def work():
             return self._make_pipeline().publish(draft, note_id=note_id, destination=destination)
@@ -685,7 +685,7 @@ class Bridge(QObject):
         def error(msg: str):
             self.busy.emit(False, "")
             self.failed.emit(
-                f"{msg}\n\nO rascunho está salvo — use Histórico › Reenviar pendentes."
+                f"{msg}\n\nThe draft is saved — use History › Resend pending."
             )
             self._emit_history()
 
@@ -728,10 +728,10 @@ class Bridge(QObject):
     def retryPending(self) -> None:
         pending = self.store.pending()
         if not pending:
-            self.failed.emit("Nada pendente.")
+            self.failed.emit("Nothing pending.")
             return
 
-        self.busy.emit(True, f"reenviando {len(pending)} nota(s)…")
+        self.busy.emit(True, f"resending {len(pending)} note(s)…")
 
         def work():
             return self._make_pipeline().retry_pending()
@@ -741,12 +741,12 @@ class Bridge(QObject):
             failures = [r for r in results if r[2]]
             if failures:
                 self.failed.emit(
-                    f"{len(results) - len(failures)} reenviada(s), "
-                    f"{len(failures)} ainda com erro: {failures[0][2].splitlines()[0]}"
+                    f"{len(results) - len(failures)} resent, "
+                    f"{len(failures)} still failing: {failures[0][2].splitlines()[0]}"
                 )
             else:
                 self.published.emit(json.dumps({
-                    "title": f"{len(results)} nota(s) reenviada(s)",
+                    "title": f"{len(results)} note(s) resent",
                     "url": results[0][1].url if results else "",
                 }))
             self._emit_history()

@@ -88,7 +88,7 @@ def generate_draft(
     except LLMError:
         raise
     except Exception as exc:
-        raise LLMError(provider_id, f"falha na chamada ao modelo: {exc}") from exc
+        raise LLMError(provider_id, f"model call failed: {exc}") from exc
 
     try:
         return NoteDraft.model_validate_json(_strip_fences(text))
@@ -99,12 +99,12 @@ def generate_draft(
         except (ValidationError, ValueError, json.JSONDecodeError) as exc:
             raise LLMError(
                 provider_id,
-                f"modelo não devolveu JSON válido nem após reparo: {exc}",
+                f"model did not return valid JSON even after repair: {exc}",
             ) from exc
         except LLMError:
             raise
         except Exception as exc:
-            raise LLMError(provider_id, f"falha na chamada de reparo: {exc}") from exc
+            raise LLMError(provider_id, f"repair call failed: {exc}") from exc
 
 
 def build_provider(spec: str, settings: Any) -> LLMProvider:
@@ -120,11 +120,11 @@ def build_provider(spec: str, settings: Any) -> LLMProvider:
 
     if backend == "ollama":
         raise ValueError(
-            f"provedor inválido: {spec!r} — o provedor local (Ollama) foi removido; "
-            "troque LLM_PROVIDER para 'gemini:<modelo>' no seu .env"
+            f"invalid provider: {spec!r} — the local provider (Ollama) was removed; "
+            "change LLM_PROVIDER to 'gemini:<model>' in your .env"
         )
     if not model:
-        raise ValueError(f"provedor inválido: {spec!r} (use 'gemini:<modelo>')")
+        raise ValueError(f"invalid provider: {spec!r} (use 'gemini:<model>')")
 
     if backend == "gemini":
         from .gemini import GeminiProvider
@@ -132,4 +132,4 @@ def build_provider(spec: str, settings: Any) -> LLMProvider:
         return GeminiProvider(
             model=model, api_key=settings.gemini_api_key, timeout=settings.llm_timeout
         )
-    raise ValueError(f"backend desconhecido: {backend!r} (suportado: gemini)")
+    raise ValueError(f"unknown backend: {backend!r} (supported: gemini)")

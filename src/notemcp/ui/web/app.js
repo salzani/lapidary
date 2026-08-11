@@ -21,8 +21,8 @@
  *    contract between this file and `ui/bridge.py`)
  *  - QWebChannel wiring (signal handlers, initial slot calls)
  *
- * All user-facing strings (labels, toasts, placeholders) are intentionally
- * kept in Portuguese; only this documentation is in English.
+ * All user-facing strings (labels, toasts, placeholders) and this
+ * documentation are in English.
  */
 
 "use strict";
@@ -32,7 +32,7 @@ let bridge = null;
 let toastTimer = null;
 
 /**
- * The destination used by "Publicar" and by the preview renderer.
+ * The destination used by "Publish" and by the preview renderer.
  *
  * Read at the moment of the click (via `currentDestination`), never
  * inferred from anywhere else — this avoids publishing to a destination
@@ -42,7 +42,7 @@ let toastTimer = null;
 let currentDestination = "database";
 
 /**
- * Publish target (Phase 6): the SINGLE SOURCE for both the "Página: X"
+ * Publish target (Phase 6): the SINGLE SOURCE for both the "Page: X"
  * footer label and the third argument of `bridge.publish`. Both must be
  * derived from these variables only, never from parallel state — that
  * guarantee is what prevents the displayed label from diverging from the
@@ -51,7 +51,7 @@ let currentDestination = "database";
  * bridge's `parentPageChanged` signal.
  */
 let currentParentPageId = "";
-let currentParentPageTitle = "raiz";
+let currentParentPageTitle = "root";
 
 /**
  * Ancestors of the publish target (root-first, target itself excluded).
@@ -86,7 +86,7 @@ $("theme").onclick = () => {
  * @param {string} [kind] - "ok" | "err" | "" — controls the accent color and,
  *   for "err", a longer auto-dismiss delay.
  * @param {boolean} [html] - When true, `message` is set via `innerHTML`
- *   (used for the "Publicado" toast, which embeds a link).
+ *   (used for the "Published" toast, which embeds a link).
  */
 function toast(message, kind, html) {
   const el = $("toast");
@@ -178,7 +178,7 @@ $("source").addEventListener("input", () => {
 });
 
 $("raw").addEventListener("input", () => {
-  $("raw-count").textContent = $("raw").value.length + " caracteres";
+  $("raw-count").textContent = $("raw").value.length + " characters";
 });
 
 
@@ -223,7 +223,7 @@ function renderDestinations(payload) {
  * Every piece of text that ultimately comes from Notion or from the LLM
  * (page titles, history entries, error messages, URLs) is rendered via
  * `innerHTML` somewhere in this file — never via `textContent` — because
- * some of it legitimately contains markup (e.g. the "Publicado" toast
+ * some of it legitimately contains markup (e.g. the "Published" toast
  * embeds an `<a>`). `esc()` is therefore applied to every such value
  * individually at the point of interpolation; skipping it on any single
  * field would open an HTML/script injection hole through Notion content
@@ -301,7 +301,7 @@ function renderHistory(payload) {
 
   const list = $("history-list");
   if (!notes.length) {
-    list.innerHTML = '<li class="history-empty">Nenhuma nota ainda.</li>';
+    list.innerHTML = '<li class="history-empty">No notes yet.</li>';
     return;
   }
   list.innerHTML = notes.map((n) => {
@@ -470,7 +470,7 @@ function handleBridgeFailed(msg) {
  * `requestPageTree` reverts `chainLoaded` to `false` in that case (fixed
  * bug, ESTADO.md bug 15 / "C3"): without it, the guard at the top of this
  * function would block any further attempt for the rest of the session and
- * `renderChain` would show "carregando…" forever. Reverting lets the next
+ * `renderChain` would show "loading…" forever. Reverting lets the next
  * trigger from `updateParentChainAvailability` (e.g. switching the
  * destination away and back) try again.
  */
@@ -493,7 +493,7 @@ function ensureChainLoaded() {
  * worker that fetches the root's children responds (see ESTADO.md, Phase
  * 6). Without walking the saved path here, a parent page that is a
  * grandchild of the root would never be found among the level-1
- * children's `selected_id`, and the screen would keep showing "raiz"
+ * children's `selected_id`, and the screen would keep showing "root"
  * while the footer label said something else (risk 11).
  *
  * @param {object} data - Parsed `pageTreeReady` payload for the root node.
@@ -558,14 +558,14 @@ function renderChain() {
 
   if (!enabled) {
     const reason = currentDestination !== "page"
-      ? 'disponível só para "Página solta"'
-      : (pageDestinationReason || "indisponível");
+      ? 'available only for "Loose page"'
+      : (pageDestinationReason || "unavailable");
     container.innerHTML = `<span class="dim chain-reason">${esc(reason)}</span>`;
   } else if (!chainLevels.length) {
-    container.innerHTML = '<span class="dim chain-reason">carregando…</span>';
+    container.innerHTML = '<span class="dim chain-reason">loading…</span>';
   } else {
     container.innerHTML = chainLevels.map((level, i) => {
-      const options = [`<option value="">${i === 0 ? "— Página raiz —" : "— aqui —"}</option>`]
+      const options = [`<option value="">${i === 0 ? "— Root page —" : "— here —"}</option>`]
         .concat((level.children || []).map((c) => {
           const label = c.ambiguous ? `${c.title} #${c.id.slice(-4)}` : c.title;
           const selected = c.id === level.selectedChildId ? " selected" : "";
@@ -654,7 +654,7 @@ function fetchChildrenInto(L, childId, after) {
  *
  * @param {number} L - Index into `chainLevels` whose select changed.
  * @param {string} value - New selected child id, or "" for the placeholder
- *   ("— Página raiz —" / "— aqui —").
+ *   ("— Root page —" / "— here —").
  */
 function handleLevelChange(L, value) {
   const wasLast = L === chainLevels.length - 1;
@@ -687,7 +687,7 @@ function selectExistingAtDeepestLevel(id) {
 /**
  * Handler for the bridge's `parentPageChanged` signal: the single place
  * where `currentParentPageId`/`currentParentPageTitle`/`currentParentPagePath`
- * are updated and the "Página: X" footer label is written, per the
+ * are updated and the "Page: X" footer label is written, per the
  * single-source-of-truth contract documented at the top of this file.
  *
  * @param {string} payload - JSON string: `{ id, title, path, is_root }`.
@@ -695,9 +695,9 @@ function selectExistingAtDeepestLevel(id) {
 function renderParentPage(payload) {
   const data = JSON.parse(payload);
   currentParentPageId = data.id || "";
-  currentParentPageTitle = data.is_root ? "raiz" : data.title;
+  currentParentPageTitle = data.is_root ? "root" : data.title;
   currentParentPagePath = data.path || [];
-  $("parent-page-label").textContent = `Página: ${currentParentPageTitle}`;
+  $("parent-page-label").textContent = `Page: ${currentParentPageTitle}`;
 }
 
 /** Hide the "create page" input and the duplicate-title warning panel. */
@@ -715,7 +715,7 @@ function closeChainCreate() {
  * (the refreshed listing for the level being created into) and
  * `parentPageChanged` (the new target). Without arming `chainRequest`
  * before the call, `handlePageTree` would discard the first one as an
- * "orphan" response (fixed bug, ESTADO.md bug 14 / "C2") — the "Página: X"
+ * "orphan" response (fixed bug, ESTADO.md bug 14 / "C2") — the "Page: X"
  * label would still change (via `parentPageChanged`, which does not go
  * through this guard), but the deepest `<select>` would neither gain the
  * new option nor reflect the selection, visibly desyncing the two things
@@ -768,14 +768,14 @@ function submitChainCreate() {
  */
 function showChainDuplicate(title, matches) {
   pendingChainCreateTitle = title;
-  const plural = matches.length > 1 ? "páginas chamadas" : "uma página chamada";
-  $("chain-duplicate-msg").textContent = `Já existe ${plural} "${title}" aqui.`;
+  const plural = matches.length > 1 ? "pages named" : "a page named";
+  $("chain-duplicate-msg").textContent = `There is already ${plural} "${title}" here.`;
 
   const useButtons = matches.map((m) =>
-    `<button type="button" class="ghost chain-use-existing" data-id="${esc(m.id)}">Usar "${esc(m.title)}"</button>`
+    `<button type="button" class="ghost chain-use-existing" data-id="${esc(m.id)}">Use "${esc(m.title)}"</button>`
   ).join("");
   $("chain-duplicate-actions").innerHTML =
-    useButtons + '<button type="button" id="chain-create-anyway" class="ghost">Criar outra assim mesmo</button>';
+    useButtons + '<button type="button" id="chain-create-anyway" class="ghost">Create another one anyway</button>';
   $("chain-duplicate").classList.remove("hidden");
 }
 
@@ -878,7 +878,7 @@ new QWebChannel(qt.webChannelTransport, (channel) => {
     sel.innerHTML = "";
 
     if (!providers.length) {
-      sel.innerHTML = "<option>nenhum provedor</option>";
+      sel.innerHTML = "<option>no provider</option>";
     } else {
       for (const p of providers) {
         const opt = document.createElement("option");
@@ -894,18 +894,18 @@ new QWebChannel(qt.webChannelTransport, (channel) => {
     const usable = providers.some((p) => p.available);
     $("format").disabled = !usable;
     if (!usable) {
-      toast("Nenhum provedor disponível — configure `GEMINI_API_KEY` no .env e reabra o app.", "err");
+      toast("No provider available — set `GEMINI_API_KEY` in .env and reopen the app.", "err");
     }
   });
 
   bridge.draftReady.connect((json) => {
     showDraft(JSON.parse(json));
-    toast("Rascunho pronto. Revise e publique.", "ok");
+    toast("Draft ready. Review and publish.", "ok");
   });
 
   bridge.published.connect((json) => {
     const { title, url } = JSON.parse(json);
-    toast(`Publicado: <strong>${esc(title)}</strong><br><a href="${esc(url)}">${esc(url)}</a>`, "ok", true);
+    toast(`Published: <strong>${esc(title)}</strong><br><a href="${esc(url)}">${esc(url)}</a>`, "ok", true);
   });
 
   /**

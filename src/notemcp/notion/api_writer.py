@@ -33,10 +33,10 @@ def _network_message(exc: Exception) -> str:
     sends the reader off to debug the wrong thing (bug 6).
     """
     return (
-        f"falha de rede ao falar com a API do Notion após {MAX_TRANSPORT_RETRIES} "
-        f"tentativas: {exc}\n"
-        "Isso é conectividade, não permissão — a configuração está ok. "
-        "Tente de novo em alguns instantes."
+        f"network failure talking to the Notion API after {MAX_TRANSPORT_RETRIES} "
+        f"attempts: {exc}\n"
+        "This is a connectivity issue, not a permission one — your configuration "
+        "is fine. Try again in a moment."
     )
 
 
@@ -64,7 +64,7 @@ def _retry(fn: Callable[[], T], *, idempotent: bool) -> T:
             if attempt == MAX_TRANSPORT_RETRIES - 1:
                 raise
             time.sleep(1.0 * 2**attempt)
-    raise AssertionError("inalcançável")
+    raise AssertionError("unreachable")
 
 
 def chunk_children(blocks: list[dict[str, Any]]) -> Iterator[list[dict[str, Any]]]:
@@ -124,8 +124,8 @@ class NotionApiWriter:
             raise NotionWriteError(_network_message(exc)) from exc
         except Exception as exc:
             raise NotionWriteError(
-                f"não consegui criar a database em {parent_page_id!r}: {exc}\n"
-                "Confira se a página pai foi compartilhada com a integração "
+                f"could not create the database at {parent_page_id!r}: {exc}\n"
+                "Check whether the parent page was shared with the integration "
                 "(··· -> Connections)."
             ) from exc
 
@@ -162,8 +162,8 @@ class NotionApiWriter:
             raise NotionWriteError(_network_message(exc)) from exc
         except Exception as exc:
             raise NotionWriteError(
-                f"não consegui ler a página {parent_page_id!r}: {exc}\n"
-                "Confira o id e se a página foi compartilhada com a integração "
+                f"could not read page {parent_page_id!r}: {exc}\n"
+                "Check the id and whether the page was shared with the integration "
                 "(··· -> Connections)."
             ) from exc
 
@@ -175,7 +175,7 @@ class NotionApiWriter:
         sources = db.get("data_sources") or []
         if not sources:
             raise NotionWriteError(
-                f"a database {database_id!r} não tem nenhum data source"
+                f"database {database_id!r} has no data source"
             )
         return sources[0]["id"]
 
@@ -233,8 +233,8 @@ class NotionApiWriter:
             raise NotionWriteError(_network_message(exc)) from exc
         except Exception as exc:
             raise NotionWriteError(
-                f"não consegui listar as subpáginas de {page_id!r}: {exc}\n"
-                "Confira o id e se a página foi compartilhada com a integração "
+                f"could not list the subpages of {page_id!r}: {exc}\n"
+                "Check the id and whether the page was shared with the integration "
                 "(··· -> Connections)."
             ) from exc
         return nodes
@@ -261,15 +261,15 @@ class NotionApiWriter:
             )
         except httpx.RemoteProtocolError as exc:
             raise NotionWriteError(
-                f"a conexão caiu depois do envio ao criar '{title}' — a página "
-                "PODE ter sido criada. Clique em Recarregar antes de tentar de "
-                f"novo. ({exc})"
+                f"the connection dropped after sending the request to create '{title}' — "
+                "the page MAY have been created. Click Reload before trying "
+                f"again. ({exc})"
             ) from exc
         except httpx.TransportError as exc:
             raise NotionWriteError(_network_message(exc)) from exc
         except Exception as exc:
             raise NotionWriteError(
-                f"não consegui criar a página '{title}' em {parent_page_id!r}: {exc}"
+                f"could not create page '{title}' under {parent_page_id!r}: {exc}"
             ) from exc
         return PageNode(id=page["id"], title=title)
 
@@ -283,7 +283,7 @@ class NotionApiWriter:
 
         On failure for a PAGE destination, the error is translated, not just
         forwarded: a 404/archived error from the API does not say why, and a
-        bare "falha ao criar a página" would send the user off to debug the
+        bare "failed to create the page" would send the user off to debug the
         wrong thing — the most common cause is the parent page having
         disappeared from Notion between selection and publish (see
         ESTADO.md §6, Phase 6).
@@ -317,12 +317,12 @@ class NotionApiWriter:
         except Exception as exc:
             if destination.kind is DestinationKind.PAGE:
                 raise NotionWriteError(
-                    f"falha ao criar a página: {exc}\n"
-                    f"a página de destino ({destination.id!r}) pode ter sido "
-                    "excluída, arquivada ou removida do compartilhamento com a "
-                    "integração; escolha outra em Destino › Página."
+                    f"failed to create the page: {exc}\n"
+                    f"the destination page ({destination.id!r}) may have been "
+                    "deleted, archived, or unshared from the integration; "
+                    "choose another one in Destination › Page."
                 ) from exc
-            raise NotionWriteError(f"falha ao criar a página: {exc}") from exc
+            raise NotionWriteError(f"failed to create the page: {exc}") from exc
 
         page_id = page["id"]
         for batch in batches[1:]:
@@ -335,8 +335,8 @@ class NotionApiWriter:
                 )
             except Exception as exc:
                 raise NotionWriteError(
-                    f"a página foi criada ({page.get('url')}) mas falhou ao anexar "
-                    f"o restante do conteúdo: {exc}"
+                    f"the page was created ({page.get('url')}) but appending "
+                    f"the rest of the content failed: {exc}"
                 ) from exc
 
         return PageRef(id=page_id, url=page.get("url", ""))

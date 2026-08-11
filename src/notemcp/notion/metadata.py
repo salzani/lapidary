@@ -32,10 +32,10 @@ def metadata_lines(draft: NoteDraft) -> list[tuple[str, str]]:
     original plan): `NoteDraft` does not carry one, and the product decision
     is not to include it.
     """
-    lines: list[tuple[str, str]] = [("Tipo", draft.doc_type)]
+    lines: list[tuple[str, str]] = [("Type", draft.doc_type)]
     if draft.tags:
         lines.append(("Tags", ", ".join(draft.tags)))
-    lines.append(("Resumo", draft.summary))
+    lines.append(("Summary", draft.summary))
     return lines
 
 

@@ -69,15 +69,15 @@ def _missing_token_message() -> str:
     """Build the "no token" error, naming every path that was searched."""
     searched = "\n".join(f"  {i}. {p}" for i, p in enumerate(_env_search_paths(), 1))
     return (
-        "NOTION_TOKEN não configurado.\n\n"
-        f"Procurei um arquivo .env nestes lugares, nesta ordem:\n{searched}\n\n"
-        "Crie um .env em um deles com pelo menos:\n"
+        "NOTION_TOKEN is not set.\n\n"
+        f"I looked for a .env file in these places, in this order:\n{searched}\n\n"
+        "Create a .env in one of them with at least:\n"
         "  NOTION_TOKEN=secret_...\n"
         "  NOTION_PARENT_PAGE_ID=...\n\n"
-        "Para uma instalação empacotada, o lugar recomendado é "
-        f"{Path.home() / '.config' / 'notemcp' / '.env'} — ele não depende "
-        "do diretório de onde o aplicativo foi aberto.\n"
-        "Alternativamente, aponte a variável NOTEMCP_ENV para o arquivo."
+        "For a packaged install, the recommended place is "
+        f"{Path.home() / '.config' / 'notemcp' / '.env'} — it does not depend "
+        "on the directory the app was launched from.\n"
+        "Alternatively, point the NOTEMCP_ENV variable at the file."
     )
 
 
@@ -168,8 +168,8 @@ class Settings(BaseSettings):
 
         if not self.notion_parent_page_id and not self.notion_data_source_id:
             raise RuntimeError(
-                "Defina NOTION_PARENT_PAGE_ID (para criar a database) "
-                "ou NOTION_DATA_SOURCE_ID (para usar uma existente)"
+                "Set NOTION_PARENT_PAGE_ID (to create the database) "
+                "or NOTION_DATA_SOURCE_ID (to use an existing one)"
             )
 
     def destination_kind(self) -> DestinationKind:

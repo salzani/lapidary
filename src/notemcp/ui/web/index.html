@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Lapidary</title>
@@ -8,22 +8,22 @@
 <body>
 
 <header class="bar">
-  <div class="brand">Lapidary</div>
+  <div class="brand"><img src="logo-mark.png" alt="" class="brand-mark">Lapidary</div>
   <div class="bar-right">
     <label class="field">
-      <span>Modelo</span>
+      <span>Model</span>
       <select id="provider"></select>
     </label>
-    <button id="history-btn" class="ghost">Histórico<span id="pending-badge" class="badge hidden"></span></button>
-    <button id="theme" class="ghost" title="Alternar tema">◐</button>
+    <button id="history-btn" class="ghost">History<span id="pending-badge" class="badge hidden"></span></button>
+    <button id="theme" class="ghost" title="Toggle theme">◐</button>
   </div>
 </header>
 
 <aside id="history" class="drawer hidden">
   <div class="drawer-head">
-    <h2>Histórico</h2>
+    <h2>History</h2>
     <div class="drawer-actions">
-      <button id="retry" class="ghost hidden">Reenviar pendentes</button>
+      <button id="retry" class="ghost hidden">Resend pending</button>
       <button id="history-close" class="ghost">✕</button>
     </div>
   </div>
@@ -37,24 +37,24 @@
 
   <section class="pane" id="pane-input">
     <div class="pane-head">
-      <h2>Anotação crua</h2>
-      <span class="hint-count" id="raw-count">0 caracteres</span>
+      <h2>Raw note</h2>
+      <span class="hint-count" id="raw-count">0 characters</span>
     </div>
-    <textarea id="raw" placeholder="Cole aqui a anotação bagunçada — ata de reunião, ideia solta, trecho de código, o que for.
+    <textarea id="raw" placeholder="Paste your messy note here — meeting minutes, a loose idea, a code snippet, whatever it is.
 
-Ctrl+Enter formata."></textarea>
+Ctrl+Enter formats."></textarea>
     <label class="field wide">
-      <span>Instrução extra (opcional)</span>
-      <input id="hint" type="text" placeholder="ex: extraia os action items com responsável">
+      <span>Extra instruction (optional)</span>
+      <input id="hint" type="text" placeholder="e.g. extract the action items with their owners">
     </label>
     <div class="pane-foot">
-      <button id="format" class="primary">Formatar</button>
+      <button id="format" class="primary">Format</button>
     </div>
   </section>
 
   <section class="pane" id="pane-draft">
     <div class="pane-head">
-      <h2>Rascunho</h2>
+      <h2>Draft</h2>
       <div class="tabs">
         <button data-tab="preview" class="tab active">Preview</button>
         <button data-tab="source" class="tab">Markdown</button>
@@ -62,51 +62,53 @@ Ctrl+Enter formata."></textarea>
     </div>
 
     <div id="empty" class="empty">
-      <p>O resultado formatado aparece aqui.</p>
-      <p class="dim">Você pode editar tudo antes de publicar.</p>
+      <img src="logo-lockup-dark.png" alt="Lapidary" class="empty-logo on-dark">
+      <img src="logo-lockup-light.png" alt="Lapidary" class="empty-logo on-light">
+      <p>The formatted result shows up here.</p>
+      <p class="dim">You can edit everything before publishing.</p>
     </div>
 
     <div id="draft" class="hidden">
-      <input id="title" class="title-input" placeholder="Título">
+      <input id="title" class="title-input" placeholder="Title">
       <div class="meta">
         <label class="field">
-          <span>Tipo</span>
+          <span>Type</span>
           <select id="doc_type">
-            <option>nota</option><option>reuniao</option><option>ideia</option>
-            <option>tarefa</option><option>referencia</option><option>resumo</option>
+            <option value="nota">Note</option><option value="reuniao">Meeting</option><option value="ideia">Idea</option>
+            <option value="tarefa">Task</option><option value="referencia">Reference</option><option value="resumo">Summary</option>
           </select>
         </label>
         <label class="field grow">
           <span>Tags</span>
-          <input id="tags" type="text" placeholder="separadas por vírgula">
+          <input id="tags" type="text" placeholder="comma-separated">
         </label>
       </div>
-      <input id="summary" class="summary-input" placeholder="Resumo">
+      <input id="summary" class="summary-input" placeholder="Summary">
 
       <div id="preview" class="body preview"></div>
       <textarea id="source" class="body hidden" spellcheck="false"></textarea>
 
       <div class="pane-foot">
         <label class="field">
-          <span>Destino</span>
+          <span>Destination</span>
           <select id="destination"></select>
         </label>
         <div class="parent-chain-row">
           <div id="parent-chain" class="parent-chain"></div>
-          <button id="chain-reload" class="ghost chain-icon-btn" type="button" title="Recarregar nível atual" disabled>↻</button>
-          <button id="chain-add" class="ghost chain-icon-btn" type="button" title="Criar subpágina aqui" disabled>+</button>
+          <button id="chain-reload" class="ghost chain-icon-btn" type="button" title="Reload current level" disabled>↻</button>
+          <button id="chain-add" class="ghost chain-icon-btn" type="button" title="Create a subpage here" disabled>+</button>
         </div>
-        <span id="parent-page-label" class="dim parent-page-label">Página: raiz</span>
+        <span id="parent-page-label" class="dim parent-page-label">Page: root</span>
         <div id="chain-create" class="chain-create hidden">
-          <input id="chain-create-title" type="text" placeholder="Nome da nova subpágina">
-          <button id="chain-create-btn" class="ghost">Criar</button>
-          <button id="chain-create-cancel" class="ghost">Cancelar</button>
+          <input id="chain-create-title" type="text" placeholder="New subpage name">
+          <button id="chain-create-btn" class="ghost">Create</button>
+          <button id="chain-create-cancel" class="ghost">Cancel</button>
         </div>
         <div id="chain-duplicate" class="chain-duplicate hidden">
           <p id="chain-duplicate-msg"></p>
           <div id="chain-duplicate-actions" class="chain-duplicate-actions"></div>
         </div>
-        <button id="publish" class="primary">Publicar no Notion</button>
+        <button id="publish" class="primary">Publish to Notion</button>
       </div>
     </div>
   </section>

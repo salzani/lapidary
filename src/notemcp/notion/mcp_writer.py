@@ -74,12 +74,12 @@ class _McpSession:
 
         if not self._ready.wait(STARTUP_TIMEOUT):
             raise NotionWriteError(
-                f"o servidor MCP não respondeu em {STARTUP_TIMEOUT:.0f}s. "
-                f"Confira se o Node está instalado (`node --version`) — na primeira "
-                f"execução o npx baixa o @notionhq/notion-mcp-server."
+                f"the MCP server did not respond within {STARTUP_TIMEOUT:.0f}s. "
+                f"Check whether Node is installed (`node --version`) — on the first "
+                f"run npx downloads @notionhq/notion-mcp-server."
             )
         if self._error is not None:
-            raise NotionWriteError(f"falha ao subir o servidor MCP: {self._error}")
+            raise NotionWriteError(f"failed to start the MCP server: {self._error}")
 
     def _run(self) -> None:
         """Entry point for the daemon thread; owns the event loop's lifetime.
@@ -134,7 +134,7 @@ class _McpSession:
         """Call a tool and return its response already parsed as JSON."""
         self.start()
         if self._session is None or self._loop is None:
-            raise NotionWriteError("sessão MCP indisponível")
+            raise NotionWriteError("MCP session unavailable")
 
         future = asyncio.run_coroutine_threadsafe(
             self._session.call_tool(tool, arguments), self._loop
@@ -142,18 +142,18 @@ class _McpSession:
         try:
             result = future.result(timeout=CALL_TIMEOUT)
         except TimeoutError as exc:
-            raise NotionWriteError(f"timeout de {CALL_TIMEOUT:.0f}s na tool {tool}") from exc
+            raise NotionWriteError(f"{CALL_TIMEOUT:.0f}s timeout calling tool {tool}") from exc
         except Exception as exc:
-            raise NotionWriteError(f"erro ao chamar {tool}: {exc}") from exc
+            raise NotionWriteError(f"error calling {tool}: {exc}") from exc
 
         text = _first_text(result)
         if result.is_error:
-            raise NotionWriteError(f"{tool} falhou: {text[:500]}")
+            raise NotionWriteError(f"{tool} failed: {text[:500]}")
         try:
             return json.loads(text)
         except json.JSONDecodeError as exc:
             raise NotionWriteError(
-                f"{tool} devolveu algo que não é JSON: {text[:300]}"
+                f"{tool} returned something that is not JSON: {text[:300]}"
             ) from exc
 
 
@@ -168,7 +168,7 @@ def _first_text(result: Any) -> str:
 class NotionMcpWriter:
     def __init__(self, token: str, session: Any | None = None):
         if not token and session is None:
-            raise NotionWriteError("NOTION_TOKEN não configurado")
+            raise NotionWriteError("NOTION_TOKEN is not set")
         self.session = session or _McpSession(token)
         atexit.register(self.close)
 
@@ -187,7 +187,7 @@ class NotionMcpWriter:
             sources = db.get("data_sources") or []
             if sources:
                 return Destination(kind=DestinationKind.DATABASE, id=sources[0]["id"])
-            raise NotionWriteError(f"a database {database_id!r} não tem data source")
+            raise NotionWriteError(f"database {database_id!r} has no data source")
 
         created = self.session.call(
             "API-create-a-data-source",

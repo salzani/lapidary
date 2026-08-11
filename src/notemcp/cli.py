@@ -31,9 +31,9 @@ from .store.db import NoteStore
 
 STATUS_MARK = {
     "published": "ok  ",
-    "failed": "ERRO",
+    "failed": "FAIL",
     "drafted": "pend",
-    "captured": "cru ",
+    "captured": "raw ",
 }
 
 
@@ -83,8 +83,8 @@ def _warn_if_uncurated_model(spec: str) -> None:
 
     if model not in GEMINI_MODELS:
         print(
-            f"aviso: {model!r} não está na lista curada de modelos Gemini "
-            f"({', '.join(GEMINI_MODELS)}) — tentando mesmo assim.",
+            f"warning: {model!r} is not in the curated list of Gemini models "
+            f"({', '.join(GEMINI_MODELS)}) — trying anyway.",
             file=sys.stderr,
         )
 
@@ -96,7 +96,7 @@ def _read_input(value: str | None) -> str:
     """
     if value is None:
         if sys.stdin.isatty():
-            raise SystemExit("nada para formatar: passe um texto, um arquivo ou use stdin")
+            raise SystemExit("nothing to format: pass some text, a file, or use stdin")
         return sys.stdin.read()
     path = Path(value)
     if len(value) < 4096 and path.is_file():
@@ -111,7 +111,7 @@ def _make_store(settings) -> NoteStore:
 def cmd_history(settings, limit: int) -> int:
     records = _make_store(settings).recent(limit)
     if not records:
-        print("nenhuma nota registrada ainda", file=sys.stderr)
+        print("no notes recorded yet", file=sys.stderr)
         return 0
     for r in records:
         mark = STATUS_MARK.get(r.status, r.status)
@@ -120,7 +120,7 @@ def cmd_history(settings, limit: int) -> int:
         if r.notion_url:
             print(f"          {r.notion_url}")
         if r.error:
-            print(f"          erro: {r.error.splitlines()[0][:110]}")
+            print(f"          error: {r.error.splitlines()[0][:110]}")
     return 0
 
 
@@ -133,12 +133,12 @@ def cmd_list_pages(settings, path: str) -> int:
         node = resolve_page_path(browser, settings.notion_parent_page_id, _split_parent_path(path))
         children = browser.list_child_pages(node.id)
     except (NotionBrowseError, NotionWriteError) as exc:
-        print(f"erro: {exc}", file=sys.stderr)
+        print(f"error: {exc}", file=sys.stderr)
         return 1
 
     print(f"{node.title} ({node.id}):")
     if not children:
-        print("  (nenhuma subpágina)")
+        print("  (no subpages)")
     for child in children:
         print(f"  {child.title}  ({child.id})")
     return 0
@@ -153,12 +153,12 @@ def cmd_retry(settings, parent_id: str | None) -> int:
     store = _make_store(settings)
     pending = store.pending()
     if not pending:
-        print("nada pendente", file=sys.stderr)
+        print("nothing pending", file=sys.stderr)
         return 0
 
     override = DestinationChoice.page(parent_id) if parent_id else None
 
-    print(f"reenviando {len(pending)} nota(s)...", file=sys.stderr)
+    print(f"resending {len(pending)} note(s)...", file=sys.stderr)
     settings.require_notion()
     pipeline = Pipeline.from_settings(settings, store=store)
 
@@ -166,7 +166,7 @@ def cmd_retry(settings, parent_id: str | None) -> int:
     for record, ref, error in pipeline.retry_pending(override=override):
         if error:
             failures += 1
-            print(f"[ERRO] #{record.id} {record.title}: {error.splitlines()[0]}", file=sys.stderr)
+            print(f"[FAIL] #{record.id} {record.title}: {error.splitlines()[0]}", file=sys.stderr)
         else:
             print(f"[ok  ] #{record.id} {record.title} -> {ref.url}", file=sys.stderr)
     return 1 if failures else 0
@@ -199,56 +199,58 @@ def main(argv: list[str] | None = None) -> int:
     inserted as the FIRST block, matching the API writer's own ordering.
     """
     parser = argparse.ArgumentParser(prog="notemcp", description=__doc__)
-    parser.add_argument("input", nargs="?", help="texto cru ou caminho de arquivo")
-    parser.add_argument("--provider", help="ex: gemini:gemini-3.5-flash-lite")
+    parser.add_argument("input", nargs="?", help="raw text or a file path")
+    parser.add_argument("--provider", help="e.g. gemini:gemini-3.5-flash-lite")
     parser.add_argument(
         "--destination",
         choices=[k.value for k in DestinationKind],
-        help="onde publicar: 'database' (linha na database Notas, padrão) ou "
-        "'page' (página filha de NOTION_PARENT_PAGE_ID). Sobrescreve NOTION_DESTINATION.",
+        help="where to publish: 'database' (a row in the Notas database, default) or "
+        "'page' (a child page of NOTION_PARENT_PAGE_ID). Overrides NOTION_DESTINATION.",
     )
     parser.add_argument(
         "--parent",
-        help="caminho por títulos até a página-mãe, a partir da raiz "
-        "(ex: 'Faculdade/Cálculo I'). Implica --destination page. "
-        "Título contendo '/' não é suportado por este separador — use --parent-id.",
+        help="path of titles down to the parent page, starting from the root "
+        "(e.g. 'College/Calculus I'). Implies --destination page. "
+        "A title containing '/' is not supported by this separator — use --parent-id.",
     )
     parser.add_argument(
         "--parent-id",
-        help="id da página-mãe, sem navegar por título (escape hatch). Implica --destination page.",
+        help="id of the parent page, bypassing title navigation (escape hatch). "
+        "Implies --destination page.",
     )
     parser.add_argument(
         "--list-pages",
         nargs="?",
         const="",
         default=None,
-        metavar="CAMINHO",
-        help="lista as subpáginas do caminho (ou da raiz, se omitido) e sai, sem publicar.",
+        metavar="PATH",
+        help="list the subpages of the path (or the root, if omitted) and exit, "
+        "without publishing.",
     )
-    parser.add_argument("--hint", help="instrução extra para o formatador")
+    parser.add_argument("--hint", help="extra instruction for the formatter")
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="formata e imprime o resultado sem escrever no Notion",
+        help="format and print the result without writing to Notion",
     )
     parser.add_argument(
-        "--show-blocks", action="store_true", help="imprime o JSON de blocos gerado"
+        "--show-blocks", action="store_true", help="print the generated blocks JSON"
     )
-    parser.add_argument("--history", action="store_true", help="lista as notas registradas")
-    parser.add_argument("--limit", type=int, default=20, help="quantas notas em --history")
+    parser.add_argument("--history", action="store_true", help="list recorded notes")
+    parser.add_argument("--limit", type=int, default=20, help="how many notes to show in --history")
     parser.add_argument(
-        "--retry", action="store_true", help="reenvia ao Notion as notas pendentes"
+        "--retry", action="store_true", help="resend pending notes to Notion"
     )
     parser.add_argument(
         "--doctor",
         action="store_true",
-        help="diagnostica configuração, SDK e provedores disponíveis",
+        help="diagnose configuration, SDK, and available providers",
     )
     parser.add_argument(
         "--live",
         action="store_true",
-        help="com --doctor: faz UMA chamada real ao Gemini e mede a latência "
-        "(opt-in — consome sua cota; nunca usado por CI ou build.py)",
+        help="with --doctor: makes ONE real call to Gemini and measures latency "
+        "(opt-in — uses your quota; never used by CI or build.py)",
     )
     args = parser.parse_args(argv)
 
@@ -258,9 +260,9 @@ def main(argv: list[str] | None = None) -> int:
         return run_doctor(argv)
 
     if args.parent and args.parent_id:
-        parser.error("--parent e --parent-id são mutuamente exclusivos")
+        parser.error("--parent and --parent-id are mutually exclusive")
     if (args.parent or args.parent_id) and args.destination == "database":
-        parser.error("--parent/--parent-id implicam --destination page; não combine com --destination database")
+        parser.error("--parent/--parent-id imply --destination page; do not combine with --destination database")
 
     settings = load_settings()
 
@@ -287,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
                 browser, settings.notion_parent_page_id, _split_parent_path(args.parent)
             )
         except NotionBrowseError as exc:
-            raise SystemExit(f"erro: {exc}") from exc
+            raise SystemExit(f"error: {exc}") from exc
         destination = DestinationChoice.page(node.id)
     else:
         destination = (
@@ -298,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
 
     raw = _read_input(args.input).strip()
     if not raw:
-        raise SystemExit("entrada vazia")
+        raise SystemExit("empty input")
 
     if not args.dry_run:
         settings.require_notion(destination_kind)
@@ -312,37 +314,37 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
-    print(f"formatando com {pipeline.provider.label}...", file=sys.stderr)
+    print(f"formatting with {pipeline.provider.label}...", file=sys.stderr)
     try:
         draft = pipeline.format_note(raw, FormatContext(hint=args.hint), destination)
     except LLMError as exc:
-        raise SystemExit(f"erro: {exc}") from exc
+        raise SystemExit(f"error: {exc}") from exc
 
     preview = sys.stderr if args.show_blocks else sys.stdout
-    print(f"\n# {draft.title}  [destino: {destination_kind.value}]", file=preview)
-    print(f"tipo: {draft.doc_type}   tags: {', '.join(draft.tags) or '-'}", file=preview)
-    print(f"resumo: {draft.summary}\n", file=preview)
+    print(f"\n# {draft.title}  [destination: {destination_kind.value}]", file=preview)
+    print(f"type: {draft.doc_type}   tags: {', '.join(draft.tags) or '-'}", file=preview)
+    print(f"summary: {draft.summary}\n", file=preview)
     print(draft.body_md, file=preview)
 
     if args.show_blocks:
         blocks = md_to_blocks(draft.body_md)
         if destination_kind is DestinationKind.PAGE:
             blocks = [metadata_callout_block(draft), *blocks]
-        print(f"\n--- {len(blocks)} blocos ---", file=sys.stderr)
+        print(f"\n--- {len(blocks)} blocks ---", file=sys.stderr)
         print(json.dumps(blocks, ensure_ascii=False, indent=2))
 
     if args.dry_run:
-        print("\n(dry-run: nada foi escrito no Notion)", file=sys.stderr)
+        print("\n(dry-run: nothing was written to Notion)", file=sys.stderr)
         return 0
 
     try:
         ref = pipeline.publish(draft, destination=destination)
     except NotionWriteError as exc:
-        print(f"\nerro: {exc}", file=sys.stderr)
-        print("O rascunho está salvo — rode `notemcp --retry` para reenviar.", file=sys.stderr)
+        print(f"\nerror: {exc}", file=sys.stderr)
+        print("The draft is saved — run `notemcp --retry` to resend.", file=sys.stderr)
         return 1
 
-    print(f"\npublicado: {ref.url}", file=sys.stderr)
+    print(f"\npublished: {ref.url}", file=sys.stderr)
     return 0
 
 

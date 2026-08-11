@@ -9,6 +9,17 @@ from ..models import DOC_TYPES, MAX_TITLE_LEN, NoteDraft
 
 DATABASE_TITLE = "Notas"
 
+# NOT UI copy — do not translate `PROP_TYPE`/`PROP_DATE`/`PROP_SUMMARY` (or
+# `DATABASE_TITLE` above). These are the literal column names of the
+# already-existing "Notas" database in the user's own Notion workspace.
+# `page_properties` writes to these keys, and `_ensure_properties`
+# (api_writer.py) compares against them to decide which columns are already
+# present. Renaming a value here does not rename the Notion column — it
+# makes the writer target a column that does not exist (silently ignored
+# by the API for properties, per bug 1 in ESTADO.md) or makes
+# `_ensure_properties` create a duplicate new column, orphaning the
+# original. If the column names ever need to change, that is a data
+# migration against the live database, not a find-and-replace here.
 PROP_TITLE = "Name"
 PROP_TYPE = "Tipo"
 PROP_TAGS = "Tags"

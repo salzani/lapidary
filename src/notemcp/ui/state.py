@@ -84,5 +84,5 @@ def load_parent_page() -> tuple[dict | None, bool]:
 
 
 def save_parent_page(parent_page: dict | None) -> None:
-    """Grava (ou limpa, com `None`) a página-mãe escolhida."""
+    """Store the chosen parent page, or clear it with `None`."""
     save(parent_page=parent_page)

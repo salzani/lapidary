@@ -55,7 +55,7 @@ def _qwebchannel_js() -> str:
     """
     f = QFile(":/qtwebchannel/qwebchannel.js")
     if not f.open(QIODevice.ReadOnly):
-        raise RuntimeError("não encontrei qwebchannel.js nos resources do Qt")
+        raise RuntimeError("could not find qwebchannel.js in Qt's resources")
     try:
         return bytes(f.readAll()).decode("utf-8")
     finally:
@@ -63,10 +63,11 @@ def _qwebchannel_js() -> str:
 
 
 class NotePage(QWebEnginePage):
-    """Abre links externos no navegador do sistema.
+    """Open external links in the system browser.
 
-    Sem isso, clicar no link da página publicada carregaria o Notion *dentro* da
-    janela do app e o usuário perderia a interface.
+    Without this, clicking the published page's link would load Notion *inside*
+    the app's own window, and the user would lose the interface with no obvious
+    way back.
     """
 
     def acceptNavigationRequest(self, url: QUrl, nav_type, is_main_frame: bool) -> bool:

@@ -20,7 +20,7 @@ from typing import Protocol, Sequence, runtime_checkable
 from ..config import Settings
 from ..models import title_slug
 
-ROOT_LABEL = "Página raiz"
+ROOT_LABEL = "Root page"
 
 
 @dataclass(frozen=True)
@@ -89,12 +89,12 @@ def build_browser(settings: Settings) -> NotionBrowser:
             from .mcp_writer import NotionMcpWriter
         except ImportError as exc:
             raise ValueError(
-                "NOTION_WRITER=mcp precisa do SDK do MCP — "
-                "`pip install 'notemcp[mcp]'` (e do Node instalado, para o npx)."
+                "NOTION_WRITER=mcp requires the MCP SDK — "
+                "`pip install 'notemcp[mcp]'` (and Node installed, for npx)."
             ) from exc
 
         return NotionMcpWriter(token=settings.notion_token)
-    raise ValueError(f"NOTION_WRITER inválido: {kind!r} (use 'api' ou 'mcp')")
+    raise ValueError(f"invalid NOTION_WRITER: {kind!r} (use 'api' or 'mcp')")
 
 
 def match_by_title(nodes: Sequence[PageNode], title: str) -> list[PageNode]:
@@ -126,16 +126,16 @@ def resolve_page_path(browser: NotionBrowser, root_id: str, parts: Sequence[str]
         matches = match_by_title(children, part)
 
         if not matches:
-            available = ", ".join(c.title for c in children) or "(nenhuma subpágina)"
+            available = ", ".join(c.title for c in children) or "(no subpages)"
             raise NotionBrowseError(
-                f"não encontrei '{part}' em '{node.title}'. "
-                f"Disponíveis nesse nível: {available}"
+                f"could not find '{part}' under '{node.title}'. "
+                f"Available at that level: {available}"
             )
         if len(matches) > 1:
             candidates = ", ".join(f"{m.title!r} ({m.id})" for m in matches)
             raise NotionBrowseError(
-                f"'{part}' é ambíguo em '{node.title}': {candidates}. "
-                "Use --parent-id para escolher sem ambiguidade."
+                f"'{part}' is ambiguous under '{node.title}': {candidates}. "
+                "Use --parent-id to choose unambiguously."
             )
         node = matches[0]
     return node

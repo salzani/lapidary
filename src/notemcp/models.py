@@ -80,10 +80,10 @@ class DestinationChoice:
 
     def __post_init__(self) -> None:
         if self.kind is DestinationKind.DATABASE and self.page_id is not None:
-            raise ValueError("DestinationChoice(DATABASE, ...) não pode carregar page_id")
+            raise ValueError("DestinationChoice(DATABASE, ...) cannot carry a page_id")
         if self.page_id is not None and not self.page_id.strip():
             raise ValueError(
-                "page_id vazio ou só espaço não é uma escolha válida — use None para a raiz"
+                "an empty or whitespace-only page_id is not a valid choice — use None for the root"
             )
 
     @classmethod
@@ -100,8 +100,8 @@ class DestinationChoice:
 
 
 PARENT_PAGE_ID_REQUIRED_MESSAGE = (
-    "destino 'página solta' exige NOTION_PARENT_PAGE_ID no .env — "
-    "NOTION_DATA_SOURCE_ID sozinho só serve para o destino 'database'"
+    "the 'loose page' destination requires NOTION_PARENT_PAGE_ID in .env — "
+    "NOTION_DATA_SOURCE_ID alone only works for the 'database' destination"
 )
 """Message shared verbatim by `config.py` (RuntimeError, boot-time guard) and
 `notion/base.py` (NotionWriteError, runtime guard) — consolidation B3: same
@@ -118,6 +118,13 @@ DOC_TYPES: tuple[str, ...] = (
     "referencia",
     "resumo",
 )
+"""Values stored verbatim as the Notion select property on every published
+page (see `notion/schema.py`'s `PROP_TYPE`) and referenced verbatim in the
+prompt (`llm/prompts.py`) that instructs the model to pick one of them. NOT
+UI copy — do not translate. Renaming any entry here would leave every
+already-published page's "Tipo" value pointing at a select option this
+project no longer writes, and would desync the prompt from what the select
+actually accepts."""
 
 MAX_TITLE_LEN = 100
 MAX_SUMMARY_LEN = 400
@@ -127,7 +134,7 @@ MAX_TAGS = 5
 def _require_text(v: str) -> str:
     v = v.strip()
     if not v:
-        raise ValueError("não pode ser vazio")
+        raise ValueError("must not be empty")
     return v
 
 
@@ -154,11 +161,11 @@ class NoteDraft(BaseModel):
     exactly what ``notion/compiler.py`` knows how to translate.
     """
 
-    title: str = Field(description="Título curto e descritivo da nota")
-    doc_type: DocType = Field(description="Categoria da anotação")
+    title: str = Field(description="Short, descriptive title of the note")
+    doc_type: DocType = Field(description="Category of the note")
     tags: list[str] = Field(default_factory=list)
-    summary: str = Field(description="Resumo de 1-2 frases")
-    body_md: str = Field(description="Corpo da nota em Markdown")
+    summary: str = Field(description="1-2 sentence summary")
+    body_md: str = Field(description="Body of the note in Markdown")
 
     @field_validator("title")
     @classmethod
@@ -167,8 +174,8 @@ class NoteDraft(BaseModel):
 
         Overflow is truncated instead of rejected on purpose: a second call
         to the model just because the title came back with 105 characters
-        would double the latency (noticeable with local Ollama) for no real
-        gain. `_clean_summary` below applies the same reasoning.
+        would double the latency, and the round trip is the slow part of the
+        whole pipeline. `_clean_summary` below applies the same reasoning.
         """
         return _require_text(v)[:MAX_TITLE_LEN]
 
@@ -197,7 +204,7 @@ class NoteDraft(BaseModel):
     @classmethod
     def _body_not_empty(cls, v: str) -> str:
         if not v.strip():
-            raise ValueError("body_md não pode ser vazio")
+            raise ValueError("body_md must not be empty")
         return v.strip()
 
     @model_validator(mode="after")
@@ -311,4 +318,4 @@ class NoteRecord(BaseModel):
         if self.draft:
             return self.draft.title
         head = self.raw_text.strip().splitlines()[0] if self.raw_text.strip() else ""
-        return (head[:60] + "…") if len(head) > 60 else head or "(vazia)"
+        return (head[:60] + "…") if len(head) > 60 else head or "(empty)"

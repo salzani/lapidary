@@ -60,18 +60,19 @@ html, body {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-weight: 600;
   letter-spacing: -0.01em;
   font-size: 15px;
 }
-.brand::before {
-  content: "";
-  display: inline-block;
-  width: 8px; height: 8px;
-  margin-right: 9px;
-  border-radius: 50%;
-  background: var(--accent);
-  vertical-align: middle;
+
+/* The designed mark, same file the packaged icon is generated from. */
+.brand-mark {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .bar-right { display: flex; align-items: center; gap: 12px; }
@@ -328,6 +329,25 @@ textarea#source {
   font-size: 13px;
 }
 .empty p { margin: 0; }
+
+/* The lockup sits in the draft pane's empty state on purpose.
+   It is the only large idle surface in the window, it is the first thing
+   seen on launch, and it disappears the moment a draft arrives — brand
+   presence exactly while there is nothing else to look at, and out of the
+   way once there is. */
+.empty-logo {
+  width: 190px;
+  max-width: 60%;
+  height: auto;
+  margin-bottom: 18px;
+  opacity: .92;
+}
+
+/* Two files rather than a CSS filter: the wordmark is dark navy and the gem
+   is light blue, so any single filter that rescues the text wrecks the gem. */
+.on-light { display: none; }
+:root[data-theme="light"] .on-dark { display: none; }
+:root[data-theme="light"] .on-light { display: block; }
 
 /* ---------------------------------------------------------------- states */
 

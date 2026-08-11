@@ -78,15 +78,15 @@ def _discover_gemini(settings) -> list[ProviderInfo]:
         reason = ""
     except Exception as exc:  # noqa: BLE001
         installed = False
-        reason = f"Gemini — falha ao carregar o SDK: {type(exc).__name__}: {exc}"
+        reason = f"Gemini — failed to load the SDK: {type(exc).__name__}: {exc}"
 
     if installed and not settings.gemini_api_key:
-        reason = "GEMINI_API_KEY não configurada"
+        reason = "GEMINI_API_KEY is not set"
 
     return [
         ProviderInfo(
             id=f"gemini:{model}",
-            label=f"{model}  ·  nuvem",
+            label=f"{model}  ·  cloud",
             backend="gemini",
             available=installed and bool(settings.gemini_api_key),
             reason=reason,

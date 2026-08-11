@@ -18,12 +18,12 @@ class GeminiProvider:
     def _get_client(self):
         if self._client is None:
             if not self.api_key:
-                raise LLMError(self.id, "GEMINI_API_KEY não configurada")
+                raise LLMError(self.id, "GEMINI_API_KEY is not set")
             try:
                 from google import genai
             except ImportError as exc:
                 raise LLMError(
-                    self.id, "google-genai não instalado — `pip install 'notemcp[gemini]'`"
+                    self.id, "google-genai not installed — `pip install 'notemcp[gemini]'`"
                 ) from exc
             self._client = genai.Client(api_key=self.api_key)
         return self._client
@@ -35,7 +35,7 @@ class GeminiProvider:
         """Call Gemini and return the raw response text.
 
         A 429 is common on the free tier, so it gets its own message instead
-        of the generic "erro da API" — it is the most likely failure a user
+        of the generic "API error" — it is the most likely failure a user
         will hit here.
         """
         client = self._get_client()
@@ -61,11 +61,11 @@ class GeminiProvider:
         except genai_errors.ClientError as exc:
             if getattr(exc, "code", None) == 429:
                 raise LLMError(
-                    self.id, "rate limit do free tier atingido — espere um pouco e tente de novo"
+                    self.id, "free tier rate limit reached — wait a moment and try again"
                 ) from exc
-            raise LLMError(self.id, f"erro da API: {exc}") from exc
+            raise LLMError(self.id, f"API error: {exc}") from exc
 
         text = (resp.text or "").strip()
         if not text:
-            raise LLMError(self.id, "resposta vazia (possível bloqueio por safety filter)")
+            raise LLMError(self.id, "empty response (possibly blocked by a safety filter)")
         return text
