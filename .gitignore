@@ -14,7 +14,7 @@ notes.db
 # it's clear at a glance what packaging leaves behind.
 /dist/
 /build/
-
+/tests
 # Generated icons (packaging/install.py -> packaging/icons.py). Derived
 # artifacts, regenerated on every install — not source.
 /packaging/assets/
