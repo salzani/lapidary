@@ -106,7 +106,7 @@ notemcp --retry                    # re-send drafts that never published
 notemcp --doctor                   # diagnose config, SDK, providers
 ```
 
-Runs on `gemini-3.6-flash` by default; `--provider gemini:<model>` overrides.
+Runs on `gemini-3.5-flash-lite` by default; `--provider gemini:<model>` overrides.
 
 Install it as a real desktop app, icon and all:
 
