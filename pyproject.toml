@@ -1,0 +1,37 @@
+[project]
+name = "notemcp"
+version = "0.1.0"
+description = "Formata anotações cruas com um LLM e publica no Notion"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "markdown-it-py>=3.0",
+    "httpx>=0.27",
+    "notion-client>=2.2",
+    "google-genai>=1.20",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2"]
+ui = ["PySide6>=6.7"]
+dev = ["pytest>=8.0"]
+build = ["pyinstaller>=6.10"]
+
+[project.scripts]
+notemcp = "notemcp.cli:main"
+notemcp-ui = "notemcp.ui.app:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/notemcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/notemcp/ui/web" = "notemcp/ui/web"

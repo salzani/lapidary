@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Lapidary</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">Lapidary</div>
+  <div class="bar-right">
+    <label class="field">
+      <span>Modelo</span>
+      <select id="provider"></select>
+    </label>
+    <button id="history-btn" class="ghost">Histórico<span id="pending-badge" class="badge hidden"></span></button>
+    <button id="theme" class="ghost" title="Alternar tema">◐</button>
+  </div>
+</header>
+
+<aside id="history" class="drawer hidden">
+  <div class="drawer-head">
+    <h2>Histórico</h2>
+    <div class="drawer-actions">
+      <button id="retry" class="ghost hidden">Reenviar pendentes</button>
+      <button id="history-close" class="ghost">✕</button>
+    </div>
+  </div>
+  <ul id="history-list" class="history-list"></ul>
+</aside>
+<div id="scrim" class="scrim hidden"></div>
+
+<div id="config-warning" class="banner hidden"></div>
+
+<main class="panes">
+
+  <section class="pane" id="pane-input">
+    <div class="pane-head">
+      <h2>Anotação crua</h2>
+      <span class="hint-count" id="raw-count">0 caracteres</span>
+    </div>
+    <textarea id="raw" placeholder="Cole aqui a anotação bagunçada — ata de reunião, ideia solta, trecho de código, o que for.
+
+Ctrl+Enter formata."></textarea>
+    <label class="field wide">
+      <span>Instrução extra (opcional)</span>
+      <input id="hint" type="text" placeholder="ex: extraia os action items com responsável">
+    </label>
+    <div class="pane-foot">
+      <button id="format" class="primary">Formatar</button>
+    </div>
+  </section>
+
+  <section class="pane" id="pane-draft">
+    <div class="pane-head">
+      <h2>Rascunho</h2>
+      <div class="tabs">
+        <button data-tab="preview" class="tab active">Preview</button>
+        <button data-tab="source" class="tab">Markdown</button>
+      </div>
+    </div>
+
+    <div id="empty" class="empty">
+      <p>O resultado formatado aparece aqui.</p>
+      <p class="dim">Você pode editar tudo antes de publicar.</p>
+    </div>
+
+    <div id="draft" class="hidden">
+      <input id="title" class="title-input" placeholder="Título">
+      <div class="meta">
+        <label class="field">
+          <span>Tipo</span>
+          <select id="doc_type">
+            <option>nota</option><option>reuniao</option><option>ideia</option>
+            <option>tarefa</option><option>referencia</option><option>resumo</option>
+          </select>
+        </label>
+        <label class="field grow">
+          <span>Tags</span>
+          <input id="tags" type="text" placeholder="separadas por vírgula">
+        </label>
+      </div>
+      <input id="summary" class="summary-input" placeholder="Resumo">
+
+      <div id="preview" class="body preview"></div>
+      <textarea id="source" class="body hidden" spellcheck="false"></textarea>
+
+      <div class="pane-foot">
+        <label class="field">
+          <span>Destino</span>
+          <select id="destination"></select>
+        </label>
+        <div class="parent-chain-row">
+          <div id="parent-chain" class="parent-chain"></div>
+          <button id="chain-reload" class="ghost chain-icon-btn" type="button" title="Recarregar nível atual" disabled>↻</button>
+          <button id="chain-add" class="ghost chain-icon-btn" type="button" title="Criar subpágina aqui" disabled>+</button>
+        </div>
+        <span id="parent-page-label" class="dim parent-page-label">Página: raiz</span>
+        <div id="chain-create" class="chain-create hidden">
+          <input id="chain-create-title" type="text" placeholder="Nome da nova subpágina">
+          <button id="chain-create-btn" class="ghost">Criar</button>
+          <button id="chain-create-cancel" class="ghost">Cancelar</button>
+        </div>
+        <div id="chain-duplicate" class="chain-duplicate hidden">
+          <p id="chain-duplicate-msg"></p>
+          <div id="chain-duplicate-actions" class="chain-duplicate-actions"></div>
+        </div>
+        <button id="publish" class="primary">Publicar no Notion</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="busy" class="busy hidden"><div class="spinner"></div><span id="busy-label"></span></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

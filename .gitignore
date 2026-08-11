@@ -1,0 +1,20 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+notes.db
+
+# PyInstaller output (packaging/build.py). `dist/` and `build/` above
+# already match these regardless of nesting depth; listed explicitly so
+# it's clear at a glance what packaging leaves behind.
+/dist/
+/build/
+
+# Generated icons (packaging/install.py -> packaging/icons.py). Derived
+# artifacts, regenerated on every install — not source.
+/packaging/assets/
