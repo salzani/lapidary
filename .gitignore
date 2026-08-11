@@ -9,12 +9,7 @@ dist/
 build/
 notes.db
 
-# PyInstaller output (packaging/build.py). `dist/` and `build/` above
-# already match these regardless of nesting depth; listed explicitly so
-# it's clear at a glance what packaging leaves behind.
 /dist/
 /build/
-/tests
-# Generated icons (packaging/install.py -> packaging/icons.py). Derived
-# artifacts, regenerated on every install — not source.
+/tests/
 /packaging/assets/
