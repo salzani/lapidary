@@ -365,6 +365,12 @@ document.addEventListener("keydown", (e) => {
  * (`.slice`) everything after it — the UI's answer to "chain of arbitrary
  * depth" from the original plan.
  *
+ * The mirroring is exact and load-bearing: `chainLevels[chainLevels.length
+ * - 1]` is ALWAYS the node the server cursor is parked on, which is what
+ * lets `handleLevelChange` decide from the array alone whether the cursor
+ * needs repositioning before it may speak to the bridge. See
+ * `fetchChildrenInto` for what breaks when a descent skips its level.
+ *
  * @type {{id: string, title: string, children: (object[]|null), selectedChildId: string}[]}
  */
 let chainLevels = [];
@@ -538,7 +544,7 @@ function restoreChainPath(ids, level, i) {
   const isLast = i === ids.length - 1;
   fetchChildrenInto(level, id, (data) => {
     if (!data.can_go_up) return;
-    if (data.children.length > 0 && !isLast) restoreChainPath(ids, level + 1, i + 1);
+    if (!isLast) restoreChainPath(ids, level + 1, i + 1);
   });
 }
 
@@ -565,8 +571,10 @@ function renderChain() {
     container.innerHTML = '<span class="dim chain-reason">loading…</span>';
   } else {
     container.innerHTML = chainLevels.map((level, i) => {
-      const options = [`<option value="">${i === 0 ? "— Root page —" : "— here —"}</option>`]
-        .concat((level.children || []).map((c) => {
+      const children = level.children || [];
+      const placeholder = i === 0 ? "— Root page —" : (children.length ? "— here —" : "— no subpages —");
+      const options = [`<option value="">${placeholder}</option>`]
+        .concat(children.map((c) => {
           const label = c.ambiguous ? `${c.title} #${c.id.slice(-4)}` : c.title;
           const selected = c.id === level.selectedChildId ? " selected" : "";
           return `<option value="${esc(c.id)}"${selected}>${esc(label)}</option>`;
@@ -625,22 +633,32 @@ function repositionCursorTo(L, then) {
 }
 
 /**
- * Descend one level via `bridge.browseInto` and push it onto `chainLevels`
- * if the child has children of its own.
+ * Descend one level via `bridge.browseInto` and push it onto `chainLevels`.
+ *
+ * The level is pushed even when the child turns out to have no subpages of
+ * its own, and that unconditionality is the invariant this whole file rests
+ * on: **the deepest entry of `chainLevels` is always the node the bridge
+ * cursor (`_browse_path[-1]` in `ui/bridge.py`) is parked on.** Pushing only
+ * for nodes with children used to break it — `browseInto` moved the cursor
+ * regardless, so selecting a childless page left the cursor one level below
+ * the deepest `<select>` on screen. From there every later call validated
+ * against the wrong level: `selectParentPage` answered "that page is not
+ * visible in the current selector", `browseInto` answered "that page is not
+ * a subpage of the current level", and the picker stayed stuck until the
+ * page gained a child. A leaf renders as a `<select>` holding only its
+ * placeholder, which is the honest reading of "this page has no subpages" —
+ * and it is the level `+` then creates into.
  *
  * @param {number} L - Index of the level whose child is being entered.
  * @param {string} childId - Id of the child node to descend into.
  * @param {function(object): void} [after] - Called with the response payload
- *   after the new level (if any) has already been pushed. Used by
- *   `restoreChainPath` to chain several `browseInto` calls in sequence
- *   without duplicating the "only push if it has children" logic.
+ *   after the new level has already been pushed. Used by `restoreChainPath`
+ *   to chain several `browseInto` calls in sequence.
  */
 function fetchChildrenInto(L, childId, after) {
   requestPageTree(childId, (data) => {
-    if (data.children.length > 0) {
-      chainLevels.push({ id: data.node.id, title: data.node.title, children: data.children, selectedChildId: "" });
-      renderChain();
-    }
+    chainLevels.push({ id: data.node.id, title: data.node.title, children: data.children, selectedChildId: "" });
+    renderChain();
     if (after) after(data);
   });
   bridge.browseInto(childId);
@@ -648,30 +666,42 @@ function fetchChildrenInto(L, childId, after) {
 
 /**
  * Handle a `<select>` change at level `L`: truncate the chain past `L`,
- * set the new selection, and either reposition the bridge cursor (if `L`
- * was not the deepest level) or descend directly (if it was) before
- * fetching the next level's children.
+ * bring the bridge cursor back to `L` if it had gone deeper, and only then
+ * apply the new selection.
+ *
+ * The order is the point. `bridge.selectParentPage` and `bridge.browseInto`
+ * are both validated against the cursor's own level — `{cursor} ∪
+ * {children of cursor}` — so neither may be called while the cursor sits
+ * below level `L`. Sending the selection first and repositioning afterwards
+ * (what this function used to do for mid-chain levels) makes the bridge
+ * reject an id the user can plainly see in the dropdown.
+ *
+ * `cursorIsAtLevel` is computed BEFORE the truncation on purpose: because
+ * `fetchChildrenInto` pushes a level for every descent, "L was the deepest
+ * level" and "the cursor is already at level L" are the same statement.
  *
  * @param {number} L - Index into `chainLevels` whose select changed.
  * @param {string} value - New selected child id, or "" for the placeholder
- *   ("— Root page —" / "— here —").
+ *   ("— Root page —" / "— here —" / "— no subpages —").
  */
 function handleLevelChange(L, value) {
-  const wasLast = L === chainLevels.length - 1;
+  const cursorIsAtLevel = L === chainLevels.length - 1;
   chainLevels = chainLevels.slice(0, L + 1);
   chainLevels[L].selectedChildId = value;
   renderChain();
   closeChainCreate();
 
-  if (value === "") {
-    setTarget(chainLevels[L].id);
-    if (!wasLast) repositionCursorTo(L, () => {});
-    return;
-  }
+  const apply = () => {
+    if (value === "") {
+      setTarget(chainLevels[L].id);
+      return;
+    }
+    setTarget(value);
+    fetchChildrenInto(L, value);
+  };
 
-  setTarget(value);
-  if (wasLast) fetchChildrenInto(L, value);
-  else repositionCursorTo(L, () => fetchChildrenInto(L, value));
+  if (cursorIsAtLevel) apply();
+  else repositionCursorTo(L, apply);
 }
 
 /**
@@ -722,6 +752,8 @@ function closeChainCreate() {
  * that are supposed to be born together (risk 11).
  */
 function armDeepestLevelRefresh() {
+  // Safe because the deepest level and the bridge cursor are the same node
+  // (see `fetchChildrenInto`), and `createChildPage` creates into the cursor.
   const L = chainLevels.length - 1;
   requestPageTree(null, (data) => {
     chainLevels[L].children = data.children;
